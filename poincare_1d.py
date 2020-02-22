@@ -100,9 +100,6 @@ class DynamicFunction(object):
         self.period = period
 
 
-def poincare_map(dyn_func, x0, )
-
-
 def linear_damper(x, t):
     x_dot = - x + 2*np.cos(t)
     return x_dot
@@ -116,27 +113,28 @@ def logistic_periodic(x, t):
     return -x*(1+x) + 2*np.cos(2*np.pi*t)
 
 
-linear = DynamicFunction(linear_damper, xt=linear_exact, fname='$\dot{x} = -x + 2\cos(t)$')
-logistic = DynamicFunction(logistic_periodic, fname='$\dot{x} = -x(x+1) + 2\cos(2 \pi t)$', period=1.0)
+if __name__ == '__main__':
+    linear = DynamicFunction(linear_damper, xt=linear_exact, fname='$\dot{x} = -x + 2\cos(t)$')
+    logistic = DynamicFunction(logistic_periodic, fname='$\dot{x} = -x(x+1) + 2\cos(2 \pi t)$', period=1.0)
 
-delta_t = 0.015
+    delta_t = 0.015
 
-# x0 = [1.0]
-# x0 = [0.9, 1.0, 1.1]
-# x0 = [-9.0, -4.0, -1.0, 0.5, 1.0, 1.5, 3.0, 11.0]
-# x0 = [-5.0, 0.0, 1.0, 2.0, 7.0]
-# x0 = np.linspace(-2.0, 2.0, 5)
-# x0 = [0.0]
-# x0 = [-1.0, 0.0, 1.0, 2.0]
-x0 = np.linspace(-1.1, -1.0, 11)
-# x0 = np.append(x0, [0.0, 1.0, 5.0, 10.0])
+    # x0 = [1.0]
+    # x0 = [0.9, 1.0, 1.1]
+    # x0 = [-9.0, -4.0, -1.0, 0.5, 1.0, 1.5, 3.0, 11.0]
+    # x0 = [-5.0, 0.0, 1.0, 2.0, 7.0]
+    # x0 = np.linspace(-2.0, 2.0, 5)
+    # x0 = [0.0]
+    # x0 = [-1.0, 0.0, 1.0, 2.0]
+    x0 = np.linspace(-1.1, -1.0, 11)
+    # x0 = np.append(x0, [0.0, 1.0, 5.0, 10.0])
 
-with plt.style.context('ggplot'):
-    fh, ah = plt.subplots(1, 2)
-    fh.set_size_inches([13.5, 6])
+    with plt.style.context('ggplot'):
+        fh, ah = plt.subplots(1, 2)
+        fh.set_size_inches([13.5, 6])
 
-    animator = PoincarePlotter(logistic, ah, x0=x0, delta_t=delta_t)
+        animator = PoincarePlotter(logistic, ah, x0=x0, delta_t=delta_t)
 
-    animation = FuncAnimation(fh, animator.animate, init_func=animator.init, frames=1000, interval=20)
-    # animation.save('vid/single_x0.mp4', writer='ffmpeg')
-    plt.show()
+        animation = FuncAnimation(fh, animator.animate, init_func=animator.init, frames=1000, interval=20)
+        # animation.save('vid/single_x0.mp4', writer='ffmpeg')
+        plt.show()
