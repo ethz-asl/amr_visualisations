@@ -55,8 +55,8 @@ class PoincarePlotter(object):
         self.ax2.set_ylabel('$\partial x / \partial t$')
         self.ax2.set_title(self.f.fname)
 
-        if len(self.x0) <= 5:
-            self.ax.legend(self.artists[0:-1:4], self.legend_entries, loc=1)
+        if len(self.x0) <= 11:
+            self.ax.legend(self.artists[0:-1:4], self.legend_entries, loc=4)
         return self.artists
 
     def animate(self, i):
@@ -93,10 +93,14 @@ class PoincarePlotter(object):
 
 
 class DynamicFunction(object):
-    def __init__(self, dx_dt, xt=None, fname=''):
+    def __init__(self, dx_dt, xt=None, fname='', period=2*np.pi):
         self.dx_dt = dx_dt
         self.xt = xt        # Exact solution for x(t) (if known)
         self.fname = fname
+        self.period = period
+
+
+def poincare_map(dyn_func, x0, )
 
 
 def linear_damper(x, t):
@@ -108,19 +112,24 @@ def linear_exact(t, x0):
     return np.exp(-t)*(x0-1) + np.cos(t) + np.sin(t)
 
 
-def logisitic_periodic(x, t):
-    return - x*(1+x) + 2*np.cos(t)
+def logistic_periodic(x, t):
+    return -x*(1+x) + 2*np.cos(2*np.pi*t)
 
 
 linear = DynamicFunction(linear_damper, xt=linear_exact, fname='$\dot{x} = -x + 2\cos(t)$')
-logistic = DynamicFunction(logisitic_periodic, fname='$\dot{x} = -x(x+1) + 2\cos(t)$')
+logistic = DynamicFunction(logistic_periodic, fname='$\dot{x} = -x(x+1) + 2\cos(2 \pi t)$', period=1.0)
 
-delta_t = 0.05
+delta_t = 0.015
 
 # x0 = [1.0]
 # x0 = [0.9, 1.0, 1.1]
-x0 = [-5.0, 0.0, 1.0, 2.0, 7.0]
+# x0 = [-9.0, -4.0, -1.0, 0.5, 1.0, 1.5, 3.0, 11.0]
+# x0 = [-5.0, 0.0, 1.0, 2.0, 7.0]
 # x0 = np.linspace(-2.0, 2.0, 5)
+# x0 = [0.0]
+# x0 = [-1.0, 0.0, 1.0, 2.0]
+x0 = np.linspace(-1.1, -1.0, 11)
+# x0 = np.append(x0, [0.0, 1.0, 5.0, 10.0])
 
 with plt.style.context('ggplot'):
     fh, ah = plt.subplots(1, 2)
