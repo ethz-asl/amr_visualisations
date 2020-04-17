@@ -4,17 +4,30 @@ import polygon_tools as poly
 import robot_tools
 from matplotlib.patches import Polygon as PlotPolygon
 from matplotlib.collections import PatchCollection
+import matplotlib.animation as animation
 from skimage import measure
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import copy
-plt.rc('font',**{'family':'serif','sans-serif':['Computer Modern Roman']})
+import argparse
+from plot_tools.surf_rotation_animation import TrisurfRotationAnimator
+
+plt.rc('font', **{'family': 'serif', 'sans-serif': ['Computer Modern Roman']})
 plt.rc('text', usetex=True)
 
-nx = 101
-num_obstacles = 5
-n_obs_samples = 5
-obs_std = 0.1
-np.random.seed(5)
+parser = argparse.ArgumentParser(description='Basic visualisation of configuration space for mobile robot')
+parser.add_argument('-nx', type=int, default=51, help='Resolution (n points in each dimension')
+parser.add_argument('-no', '--n-obstacles', type=int, default=5, help='Number of obstacles')
+parser.add_argument('-ns', '--n-samples', type=int, default=5, help='Number of sample locations for testing')
+parser.add_argument('-ss', '--std-samples', type=float, default=0.1, help='Sample standard deviation')
+parser.add_argument('--seed', type=int, default=5, help='Numpy random seed')
+parser.add_argument('--animation', action='store_true', help='Generate animation')
+args = parser.parse_args()
+
+nx = args.nx
+num_obstacles = args.n_obstacles
+n_obs_samples = args.n_samples
+obs_std = args.std_samples
+np.random.seed(args.seed)
 
 # Generate obstacles (random points then convex hull)
 obs_centres = [poly.Point(*np.random.uniform(size=2)) for i in range(num_obstacles)]
@@ -60,7 +73,7 @@ a1.add_artist(PlotPolygon(robo.get_current_polygon(), facecolor='r'))
 robo.set_position((0.25, 0.38))
 robo.get_current_polygon().intersect(obstacles[-1])
 
-x, y, h = np.linspace(0, 1, 51), np.linspace(0, 1, 51), np.linspace(0, np.pi, 41)
+x, y, h = np.linspace(0, 1, nx), np.linspace(0, 1, nx), np.linspace(0, np.pi, nx)
 v = np.zeros((len(x), len(y), len(h)))
 for i,xi in enumerate(x):
     for j, yj in enumerate(y):
@@ -76,17 +89,18 @@ for i,xi in enumerate(x):
             v[i, j, k] = in_obs
 
 verts, faces, normals, values = measure.marching_cubes(v, spacing=(x[1]-x[0], y[1]-y[0], (h[1]-h[0])*180/np.pi))
+ax_lims = [[0, x[-1]], [0, y[-1]], [0, h[-1]*180/np.pi]]
+
 fig = plt.figure(figsize=(10, 10))
 ax = fig.add_subplot(111, projection='3d')
 ax.plot_trisurf(verts[:, 0], verts[:,1], faces, verts[:, 2],
                 cmap='Spectral', lw=1)
-ax.set_xlim(0, x[-1])  # a = 6 (times two for 2nd ellipsoid)
-ax.set_ylim(0, y[-1])  # b = 10
-ax.set_zlim(0, h[-1]*180/np.pi)  # c = 16
+ax.set_xlim(ax_lims[0])
+ax.set_ylim(ax_lims[1])
+ax.set_zlim(ax_lims[2])
 ax.set_xlabel(r'$x_c$')
 ax.set_ylabel(r'$y_c$')
 ax.set_zlabel(r"$\theta (^{\circ})$")
-
 
 robo.set_position([0.1, 0.1])
 f2, a2 = plt.subplots(2, 2)
@@ -100,6 +114,11 @@ for i, ax in enumerate(a2.flat):
     ax.set_title(r"$\theta = {0}$".format(h[dex]*180/np.pi))
     ax.tick_params(top=0, left=0)
 
+if args.animation:
+    rotator = TrisurfRotationAnimator(verts, faces, ax_lims=ax_lims, delta_angle=5.0,
+                                      x_label=r'$x_c$', y_label=r'$y_c$', z_label=r"$\theta (^{\circ})$")
+    ani = animation.FuncAnimation(rotator.f, rotator.update, 72, init_func=rotator.init, interval=10, blit=False)
+    ani.save('fig/config_space_rotation.gif', writer='imagemagick', fps=15)
 # random.seed(1)
 # true_g = fm_graphtools.CostmapGrid(gridsize[0], gridsize[1])
 # true_g.obstacles = fm_plottools.generate_obstacles(gridsize[0], gridsize[1], nobs, obs_size)
@@ -107,5 +126,4 @@ for i, ax in enumerate(a2.flat):
 # f1, a1 = fm_plottools.init_fig(true_g)
 # fm_plottools.draw_grid(a1, true_g)
 
-plt.show(block=False)
-
+plt.show()
