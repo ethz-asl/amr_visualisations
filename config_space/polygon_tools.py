@@ -28,6 +28,15 @@ OrderedEdge = namedtuple('OrderedEdge', ('lp', 'rp'))
 class PointList(list):
     bounds = None
 
+    def __init__(self, p_in):
+        p_out = []
+        for p in p_in:
+            if not isinstance(p, Point):
+                assert len(p) == 2
+                p = Point(p[0], p[1])
+            p_out.append(p)
+        super(PointList, self).__init__(p_out)
+
     def min_yx_index(self):
         im = 0
         for i, pi in enumerate(self):
