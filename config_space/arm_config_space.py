@@ -4,7 +4,7 @@ import polygon_tools as poly
 import robot_tools
 from matplotlib.patches import Polygon as PlotPolygon
 from matplotlib.collections import PatchCollection
-from matplotlib.animation import FuncAnimation
+import matplotlib.animation as animation
 import matplotlib.cm as cm
 import copy
 import argparse
@@ -17,6 +17,7 @@ cmap = cm.viridis
 
 parser = argparse.ArgumentParser(description='Plot the config space from Fig 6.1 in Intro to AMR textbook')
 parser.add_argument('-nx', type=int, default=101, help='Resolution (n points in each dimension')
+parser.add_argument('--save-animation', action='store_true', help='Save animation')
 args = parser.parse_args()
 
 
@@ -45,8 +46,15 @@ def plot_config_space(ax, obstacles, arm, cspace_array, col_map, xlim, ylim, the
 
     ax[1].set_xlabel(r'$\theta_1$')
     ax[1].set_ylabel(r'$\theta_2$')
-    ax[1].set_xlim(0, theta2[-1])
-    ax[1].set_ylim(0, theta2[-1])
+    ax[1].set_xlim(theta1_lim[0], theta1_lim[-1])
+    ax[1].set_ylim(theta2_lim[0], theta2_lim[-1])
+
+    # This is a bit dumb, should probably just assume [0, 2pi) everywhere, but meh
+    ax[1].set_xticks([0, np.pi / 2, np.pi, 3 * np.pi / 2, 2 * np.pi])
+    ax[1].set_yticks([0, np.pi/2, np.pi, 3*np.pi/2, 2*np.pi])
+
+    ax[1].set_xticklabels([r'$0$', r'$\pi/2$', r'$\pi$', r'3$\pi/2$', r'$2\pi$'])
+    ax[1].set_yticklabels([r'$0$', r'$\pi/2$', r'$\pi$', r'3$\pi/2$', r'$2\pi$'])
 
     cspace_array = np.ma.masked_where(cspace_array == 0.0, cspace_array)
     col_map.set_bad(color='white')
@@ -58,10 +66,12 @@ def plot_config_space(ax, obstacles, arm, cspace_array, col_map, xlim, ylim, the
 
 class ArmAnimator(object):
     h_arm = None
+    plot_artists = []
 
     def __init__(self, arm, obstacles, cspace_array, path, x_lim, y_lim, t1_lim, t2_lim, col_map=cm.viridis):
 
         self.fig, self.ax = plt.subplots(1, 2)
+        self.fig.set_size_inches([6.4, 3.6])  # 128*720 at 200 dpi
         self.arm = arm
         self.obstacles = obstacles
         self.cspace_array = cspace_array
@@ -72,17 +82,25 @@ class ArmAnimator(object):
         self.t1lim = t1_lim
         self.t2lim = t2_lim
         self.max_frames = self.path.shape[0]
+        self.end_effector_path = poly.PointList([])
 
     def init_fig(self):
         for a in self.ax:
             a.cla()
+
+        self.arm.set_link_angles(self.path[0])
         self.h_arm = plot_config_space(self.ax, self.obstacles, self.arm, self.cspace_array, self.cmap, self.x_lim,
                                        self.y_lim, self.t1lim, self.t2lim)
 
         self.h_path, = self.ax[1].plot(self.path[:1, 0], self.path[:1, 1], 'r--')
         self.h_pathend, = self.ax[1].plot(self.path[0, 0], self.path[0, 1], 'ro')
 
-        return [self.h_arm, self.h_path, self.h_pathend]
+        self.end_effector_path = poly.PointList([self.arm.get_end_effector_position()])
+        self.h_ee_path, = self.ax[0].plot([self.end_effector_path[0].x], [self.end_effector_path[0].y], 'r--')
+        self.h_ee_pathend, = self.ax[0].plot([self.end_effector_path[0].x], [self.end_effector_path[0].y], 'ro')
+        self.plot_artists = [self.h_arm, self.h_path, self.h_pathend, self.h_ee_path, self.h_ee_pathend]
+
+        return self.plot_artists
 
     def animate(self, i):
         self.arm.set_link_angles(self.path[i])
@@ -91,7 +109,11 @@ class ArmAnimator(object):
         self.h_path.set_data(self.path[:(i+1), 0], self.path[:(i+1), 1])
         self.h_pathend.set_data(self.path[i, 0], self.path[i, 1])
 
-        return [self.h_arm, self.h_path, self.h_pathend]
+        self.end_effector_path.append(self.arm.get_end_effector_position())
+        self.h_ee_path.set_data(*self.end_effector_path.get_xy())
+        self.h_ee_pathend.set_data([self.end_effector_path[-1].x], [self.end_effector_path[-1].y])
+
+        return self.plot_artists
 
 
 # Generate obstacles (random points then convex hull)
@@ -135,10 +157,11 @@ animation_length = 10.0
 p_full = np.array([path_theta1, path_theta2]).T
 arm_anim = ArmAnimator(robot_arm, all_obstacles, v, p_full, [0, 10], [0, 10], theta1[[0, -1]], theta2[[0, -1]])
 delta_t = (animation_length * 1000.0 / arm_anim.max_frames)
-animation = FuncAnimation(arm_anim.fig, arm_anim.animate, init_func=arm_anim.init_fig, frames=arm_anim.max_frames,
+arm_animation = animation.FuncAnimation(arm_anim.fig, arm_anim.animate, init_func=arm_anim.init_fig, frames=arm_anim.max_frames,
                           interval=delta_t, blit=True)
 
 if args.save_animation:
     # animation.save('fig/arm_config_space_video.gif', writer='imagemagick', fps=1000.0/delta_t)
-    animation.save('fig/arm_config_space_video.mp4', writer='ffmpeg', fps=int(1000.0/delta_t), extra_args=["-crf","10", "-profile:v", "main"])
+    arm_animation.save('fig/arm_config_space_video.mp4', writer='ffmpeg', fps=int(1000.0/delta_t), dpi=200,
+                       extra_args=["-crf", "18", "-profile:v", "main", "-tune", "animation"])
 plt.show()

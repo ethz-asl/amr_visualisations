@@ -68,6 +68,9 @@ class RobotArm2D(object):
     def get_spine_points(self):
         return [p.x for p in self._spine_pts], [p.y for p in self._spine_pts]
 
+    def get_end_effector_position(self):
+        return self._spine_pts[-1]
+
 
 
 

@@ -60,6 +60,7 @@ class PointList(list):
 
     def get_xy(self):
         x, y = zip(*self)
+        return x, y
 
 
 class Polygon(PointList):
