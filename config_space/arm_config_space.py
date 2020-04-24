@@ -17,12 +17,28 @@ cmap = cm.viridis
 
 parser = argparse.ArgumentParser(description='Plot the config space from Fig 6.1 in Intro to AMR textbook')
 parser.add_argument('-nx', type=int, default=101, help='Resolution (n points in each dimension')
-parser.add_argument('--save-animation', action='store_true', help='Save animation')
+parser.add_argument('-sa', '--save-animation', action='store_true', help='Save animation')
 args = parser.parse_args()
 
 
 def make_rectangle_obstacle(xlim, ylim):
     return poly.Polygon([[xlim[0], ylim[0]], [xlim[1], ylim[0]], [xlim[1], ylim[1]], [xlim[0], ylim[1]]])
+
+
+def angle_wrap(angles):
+    return angles % (2 * np.pi)
+
+
+def linear_path(points, nx=50):
+    c_point = points[0]
+    path = np.array([c_point])
+
+    for end_point in points[1:]:
+        new_path = np.linspace(path[-1], end_point, nx)       # Requires numpy > 1.16.0
+        path = np.concatenate((path, new_path[1:]))
+
+    return path
+
 
 
 def plot_config_space(ax, obstacles, arm, cspace_array, col_map, xlim, ylim, theta1_lim, theta2_lim):
@@ -92,6 +108,7 @@ class ArmAnimator(object):
         self.h_arm = plot_config_space(self.ax, self.obstacles, self.arm, self.cspace_array, self.cmap, self.x_lim,
                                        self.y_lim, self.t1lim, self.t2lim)
 
+        self.last_break = 0
         self.h_path, = self.ax[1].plot(self.path[:1, 0], self.path[:1, 1], 'r--')
         self.h_pathend, = self.ax[1].plot(self.path[0, 0], self.path[0, 1], 'ro')
 
@@ -106,7 +123,12 @@ class ArmAnimator(object):
         self.arm.set_link_angles(self.path[i])
 
         self.h_arm.set_data(*self.arm.get_spine_points())
-        self.h_path.set_data(self.path[:(i+1), 0], self.path[:(i+1), 1])
+        if any(abs(self.path[i] - self.path[i-1]) > np.pi):
+            old_path, = self.ax[1].plot(self.path[self.last_break:i, 0], self.path[self.last_break:i, 1], 'r--')
+            self.plot_artists.append(old_path)
+            self.last_break = i
+
+        self.h_path.set_data(self.path[self.last_break:(i+1), 0], self.path[self.last_break:(i+1), 1])
         self.h_pathend.set_data(self.path[i, 0], self.path[i, 1])
 
         self.end_effector_path.append(self.arm.get_end_effector_position())
@@ -144,17 +166,19 @@ f1, a1 = plt.subplots(1, 2)
 robot_arm.set_link_angles([1.1, 0.3])
 plot_config_space(a1, all_obstacles, robot_arm, v, cmap, [0, 10], [0, 10], theta1[[0, -1]], theta2[[0, -1]])
 
-# t = np.linspace(0, 1.0, 101)
-# path_theta1 = 2 - np.cos(t*2*np.pi)
-# path_theta2 = 0.5+5*t
+# Path from textbook
 path_fit = np.polyfit([0.3, 1.6, 4.3, 5.9], [1.2, 0.8, 3.3, 3.2], 3)
 path_theta2 = np.linspace(0.3, 5.9, 300)
 path_theta1 = np.polyval(path_fit, path_theta2)
-a1[1].plot(path_theta1, path_theta2, 'r--')
+p_full = angle_wrap(np.array([path_theta1, path_theta2]).T)
+
+# Piecewise linear path
+# p_full = angle_wrap(linear_path([[1.2, 0.3], [2.5, -2.4], [4, -2.4], [3.2, -0.2]], 100))
+
+a1[1].plot(p_full[:, 0], p_full[:, 1], 'r--')
 
 ## Animation
 animation_length = 10.0
-p_full = np.array([path_theta1, path_theta2]).T
 arm_anim = ArmAnimator(robot_arm, all_obstacles, v, p_full, [0, 10], [0, 10], theta1[[0, -1]], theta2[[0, -1]])
 delta_t = (animation_length * 1000.0 / arm_anim.max_frames)
 arm_animation = animation.FuncAnimation(arm_anim.fig, arm_anim.animate, init_func=arm_anim.init_fig, frames=arm_anim.max_frames,
@@ -162,6 +186,6 @@ arm_animation = animation.FuncAnimation(arm_anim.fig, arm_anim.animate, init_fun
 
 if args.save_animation:
     # animation.save('fig/arm_config_space_video.gif', writer='imagemagick', fps=1000.0/delta_t)
-    arm_animation.save('fig/arm_config_space_video.mp4', writer='ffmpeg', fps=int(1000.0/delta_t), dpi=200,
+    arm_animation.save('fig/arm_config_space_video2.mp4', writer='ffmpeg', fps=int(1000.0/delta_t), dpi=200,
                        extra_args=["-crf", "18", "-profile:v", "main", "-tune", "animation"])
 plt.show()
