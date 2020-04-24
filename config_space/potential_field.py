@@ -4,11 +4,11 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib import cm
 from matplotlib.patches import Circle
 import matplotlib.animation as animation
-# import rotanimate
+from plot_tools.surf_rotation_animation import RotationAnimator
 
-# Annoying Windows stuff if running on Windows (requires pointer to ImageMagick)
+# Windows stuff if running on Windows (requires pointer to ImageMagick convert for animated gif)
 # import os, sys
-# imgk_path = os.path.join('C:/', 'Users', 'lawrancn', 'Downloads', 'ImageMagick', 'convert.exe')
+# imgk_path = os.path.join('C:/', 'Users', 'USER', 'Downloads', 'ImageMagick', 'convert.exe')
 # plt.rcParams['animation.convert_path'] = imgk_path
 # if imgk_path not in sys.path: sys.path.append(imgk_path)
 
@@ -102,34 +102,6 @@ def gradient_path(dx, dy, start, goal, step=0.1, goal_range = 0.5):
         path.append(cp.copy())
     return np.array(path)
 
-
-class RotationAnimator(object):
-    def __init__(self, x, y, z, goal, start_azim=-60.0, delta_angle=10.0, start_elev=30.0):
-        self.f = plt.figure()
-        self.a = self.f.add_subplot(111, projection='3d')
-        self.h_surf = a3.plot_surface(x, y, z.T, cmap=cm.coolwarm)
-        self.x = x
-        self.y = y
-        self.z = z
-        self.goal = goal
-        self.h_goal = a3.plot([goal[0]], [goal[1]], [z[int(goal[0]), int(goal[1])]], 'yo')
-        # self.h_start = a3.plot([start[0]], [start[1]], [z[start[0], start[1]]], 'g^')
-        # self.h_path = a3.plot(path[:,0], path[:,1])
-        self.a.azim = start_azim
-        self.a.elev = start_elev
-        self.start_azim = start_azim
-        self.start_elev = start_elev
-        self.delta_angle = delta_angle
-
-    def update_anim(self, n):
-        self.a.cla()
-        h_surf = self.a.plot_surface(self.x, self.y, self.z.T, cmap=cm.coolwarm)
-        # self.h_goal = a3.plot([self.goal[0]], [self.goal[1]], [self.z[int(self.goal[0]), int(self.goal[1])]], 'yo')
-        self.a.azim = self.start_azim+n*self.delta_angle
-        self.a.elev = self.start_elev
-        return h_surf,
-
-
 w = 100
 h = 100
 n_obs = 5
@@ -189,10 +161,7 @@ a3.plot([goal[0]], [goal[1]], [my_world.cost_map[int(goal[0]), int(goal[1])]], '
 angles = np.linspace(-60, 300, 51)[:-1] # A list of 20 angles between 0 and 360
 
 rotator = RotationAnimator(X, Y, my_world.cost_map, goal, start_azim=-60, delta_angle=5.0)
-ani = animation.FuncAnimation(rotator.f, rotator.update_anim, 72, interval=10, blit=False)
-ani.save('fig/animation.gif', writer='imagemagick', fps=30)
-# create an animated gif (20ms between frames)
-# rotanimate(a3, angles,'fig/rotating_potentialfield.gif',delay=20)
+ani = animation.FuncAnimation(rotator.f, rotator.update, 72, init_func=rotator.init, interval=10, blit=False)
+# ani.save('fig/animation.gif', writer='imagemagick', fps=30)
 
-
-plt.show(block=False)
+plt.show()
