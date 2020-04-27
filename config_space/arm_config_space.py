@@ -9,7 +9,15 @@ import matplotlib.cm as cm
 import copy
 import argparse
 
-""" Plot the config space from Introduction to Autonomous Mobile Robots Fig 6.1 """
+""" 
+
+Plot the config space from Introduction to Autonomous Mobile Robots Fig 6.1 
+
+Requires: numpy, matplotlib, argparse
+
+Author: Nicholas Lawrance (nicholas.lawrance@mavt.ethz.ch)
+
+"""
 
 plt.rc('font', **{'family': 'serif', 'sans-serif': ['Computer Modern Roman']})
 plt.rc('text', usetex=True)
@@ -87,7 +95,7 @@ class ArmAnimator(object):
     def __init__(self, arm, obstacles, cspace_array, path, x_lim, y_lim, t1_lim, t2_lim, col_map=cm.viridis):
 
         self.fig, self.ax = plt.subplots(1, 2)
-        self.fig.set_size_inches([6.4, 3.6])  # 128*720 at 200 dpi
+        self.fig.set_size_inches([9.6, 5.4])  # 1920*1080 at 200 dpi
         self.arm = arm
         self.obstacles = obstacles
         self.cspace_array = cspace_array
@@ -138,7 +146,7 @@ class ArmAnimator(object):
         return self.plot_artists
 
 
-# Generate obstacles (random points then convex hull)
+# Generate obstacles (or add your own, maybe make this a yaml input?)
 ob1 = make_rectangle_obstacle([2.3, 3.4], [7, 9.8])
 ob2 = make_rectangle_obstacle([7.3, 8.5], [7.6, 10])
 ob3 = make_rectangle_obstacle([1.3, 3], [2.8, 3.8])
@@ -187,5 +195,5 @@ arm_animation = animation.FuncAnimation(arm_anim.fig, arm_anim.animate, init_fun
 if args.save_animation:
     # animation.save('fig/arm_config_space_video.gif', writer='imagemagick', fps=1000.0/delta_t)
     arm_animation.save('fig/arm_config_space_video2.mp4', writer='ffmpeg', fps=int(1000.0/delta_t), dpi=200,
-                       extra_args=["-crf", "18", "-profile:v", "main", "-tune", "animation"])
+                       extra_args=["-crf", "18", "-profile:v", "main", "-tune", "animation", "-pix_fmt", "yuv420p"])
 plt.show()

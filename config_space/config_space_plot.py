@@ -11,6 +11,16 @@ import copy
 import argparse
 from plot_tools.surf_rotation_animation import TrisurfRotationAnimator
 
+""" 
+
+Plot an example of config space for Autonomous Mobile Robots lecture notes 
+
+Requires: numpy, matplotlib, argparse, scikit-image (>=0.13, for marching cubes)
+
+Author: Nicholas Lawrance (nicholas.lawrance@mavt.ethz.ch)
+
+"""
+
 plt.rc('font', **{'family': 'serif', 'sans-serif': ['Computer Modern Roman']})
 plt.rc('text', usetex=True)
 
@@ -88,7 +98,7 @@ for i,xi in enumerate(x):
                     break
             v[i, j, k] = in_obs
 
-verts, faces, normals, values = measure.marching_cubes(v, spacing=(x[1]-x[0], y[1]-y[0], (h[1]-h[0])*180/np.pi))
+verts, faces, normals, values = measure.marching_cubes_lewiner(v, spacing=(x[1]-x[0], y[1]-y[0], (h[1]-h[0])*180/np.pi))
 ax_lims = [[0, x[-1]], [0, y[-1]], [0, h[-1]*180/np.pi]]
 
 fig = plt.figure(figsize=(10, 10))
@@ -118,7 +128,9 @@ if args.animation:
     rotator = TrisurfRotationAnimator(verts, faces, ax_lims=ax_lims, delta_angle=5.0,
                                       x_label=r'$x_c$', y_label=r'$y_c$', z_label=r"$\theta (^{\circ})$")
     ani = animation.FuncAnimation(rotator.f, rotator.update, 72, init_func=rotator.init, interval=10, blit=False)
-    ani.save('fig/config_space_rotation.gif', writer='imagemagick', fps=15)
+    # ani.save('fig/config_space_rotation.gif', writer='imagemagick', fps=15)
+    ani.save('fig/config_space_rotation.mp4', writer='ffmpeg', fps=int(15),
+                       extra_args=["-crf", "18", "-profile:v", "main", "-tune", "animation", "-pix_fmt", "yuv420p"])
 # random.seed(1)
 # true_g = fm_graphtools.CostmapGrid(gridsize[0], gridsize[1])
 # true_g.obstacles = fm_plottools.generate_obstacles(gridsize[0], gridsize[1], nobs, obs_size)
