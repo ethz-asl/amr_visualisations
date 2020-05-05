@@ -7,7 +7,7 @@ Clone the repo, install dependencies
 ```
 git clone https://github.com/ethz-asl/amr_visualisations.git
 cd amr_visualisations
-pip install -r requirements
+pip install -r requirements.txt
 ``` 
 
 ## Configuration space examples
@@ -24,6 +24,8 @@ A basic example can be generated with:
 ```
 python config_space_plot.py
 ```
+![config_space_slices](https://user-images.githubusercontent.com/10678827/81062882-16cf0400-8ed7-11ea-9d36-697450a56593.png)
+
 
 Help for the flags etc. are available with:
 ```
@@ -34,6 +36,8 @@ Some things you might like to change include:
  - The robot footprint is defined with a csv file ([example](config_space/robots/bar_robot.csv)) and set with the `--robot-footprint` flag
  - You can change the sampling density with the `-nx` flag
  - Generate the 3D rotation animation with the `--animation` flag 
+
+![config_space_rotation](https://user-images.githubusercontent.com/10678827/81062839-0585f780-8ed7-11ea-8619-5da014477b18.gif)
 
 ### Robot arm configuration space
 This script shows the configuration space for a basic multi-jointed robot arm.
@@ -46,17 +50,20 @@ Again, basic help can be found with
 ```
 python arm_config_space.py -h
 ```
-
 The obstacles and robot are currently hardcoded, but the code should work for different obstacle and robot link lengths and can be modified in the code to see how the config space changes.
 (This could be improved if useful?)
+
+![arm_config_space_video](https://user-images.githubusercontent.com/10678827/81062807-eedfa080-8ed6-11ea-8d94-a39898cf47cd.gif)
 
 ### Potential field example
 ```
 python potential_field.py
 ```
+![rotating_potentialfieldobs](https://user-images.githubusercontent.com/10678827/81062961-3e25d100-8ed7-11ea-917e-fd2a75dafec1.gif)
 
 ## Poincaré example
 ```
 cd poincare_example
 python poincare_1d.py
 ```
+![poincare_example_ffm](https://user-images.githubusercontent.com/10678827/81069466-2ef85080-8ee2-11ea-9317-88f10991f86b.gif)
