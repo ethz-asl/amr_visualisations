@@ -6,7 +6,6 @@ from matplotlib.patches import Polygon as PlotPolygon
 from matplotlib.collections import PatchCollection
 import matplotlib.animation as animation
 import matplotlib.cm as cm
-import copy
 import argparse
 
 """ 

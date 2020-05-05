@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import matplotlib.pyplot as plt
 import polygon_tools as poly
@@ -25,7 +26,8 @@ plt.rc('font', **{'family': 'serif', 'sans-serif': ['Computer Modern Roman']})
 plt.rc('text', usetex=True)
 
 parser = argparse.ArgumentParser(description='Basic visualisation of configuration space for mobile robot')
-parser.add_argument('-nx', type=int, default=51, help='Resolution (n points in each dimension')
+parser.add_argument('-nx', type=int, default=61, help='Resolution (n points in each dimension')
+parser.add_argument('-rf', '--robot-footprint', default='robots/bar_robot.csv', help='Robot footprint csv file')
 parser.add_argument('-no', '--n-obstacles', type=int, default=5, help='Number of obstacles')
 parser.add_argument('-ns', '--n-samples', type=int, default=5, help='Number of sample locations for testing')
 parser.add_argument('-ss', '--std-samples', type=float, default=0.1, help='Sample standard deviation')
@@ -71,13 +73,12 @@ c_obs = PatchCollection(h_obs)
 a1.add_collection(c_obs)
 a1.scatter(*zip(*in_obs), color='r', marker='x')
 a1.scatter(*zip(*out_obs), color='g', marker='.')
-print "Intersect: {0}".format(obstacles[0].intersect(obstacles[1]))
+print("Intersect: {0}".format(obstacles[0].intersect(obstacles[1])))
 
+# Load the robot shape
+robo = robot_tools.Robot2D(footprint_file=args.robot_footprint)
 
 # Now try robot poses:
-# robo_footprint = poly.PointList([poly.Point(0.05, 0.0), poly.Point(-0.03, 0.03), poly.Point(-0.03, -0.03)])
-robo_footprint = poly.PointList([poly.Point(0.1, 0.01), poly.Point(-0.1, 0.01), poly.Point(-0.1, -0.01), poly.Point(0.1, -0.01)])
-robo = robot_tools.Robot2D(footprint=robo_footprint)
 a1.add_artist(PlotPolygon(robo.get_current_polygon(), facecolor='r'))
 
 robo.set_position((0.25, 0.38))
@@ -103,8 +104,7 @@ ax_lims = [[0, x[-1]], [0, y[-1]], [0, h[-1]*180/np.pi]]
 
 fig = plt.figure(figsize=(10, 10))
 ax = fig.add_subplot(111, projection='3d')
-ax.plot_trisurf(verts[:, 0], verts[:,1], faces, verts[:, 2],
-                cmap='Spectral', lw=1)
+ax.plot_trisurf(verts[:, 0], verts[:, 1], faces, verts[:, 2], cmap='Spectral', lw=1)
 ax.set_xlim(ax_lims[0])
 ax.set_ylim(ax_lims[1])
 ax.set_zlim(ax_lims[2])
@@ -116,12 +116,12 @@ robo.set_position([0.1, 0.1])
 f2, a2 = plt.subplots(2, 2)
 for i, ax in enumerate(a2.flat):
     dex = int(i*0.25*(len(h)-1))
-    ax.matshow(v[:, :, dex].transpose(), origin='lower', extent=[0,1,0,1], cmap='Greys')
+    ax.matshow(v[:, :, dex].transpose(), origin='lower', extent=[0, 1, 0, 1], cmap='Greys')
     ax.add_collection(PatchCollection(copy.copy(h_obs)))
     robo.set_heading(h[dex])
     ax.add_artist(PlotPolygon(robo.get_current_polygon(), facecolor='r'))
     ax.plot(*robo.position, color='g', marker='x')
-    ax.set_title(r"$\theta = {0}$".format(h[dex]*180/np.pi))
+    ax.set_title(r"$\theta = {0:0.1f}$".format(h[dex]*180/np.pi))
     ax.tick_params(top=0, left=0)
 
 if args.animation:
@@ -131,11 +131,5 @@ if args.animation:
     # ani.save('fig/config_space_rotation.gif', writer='imagemagick', fps=15)
     ani.save('fig/config_space_rotation.mp4', writer='ffmpeg', fps=int(15),
                        extra_args=["-crf", "18", "-profile:v", "main", "-tune", "animation", "-pix_fmt", "yuv420p"])
-# random.seed(1)
-# true_g = fm_graphtools.CostmapGrid(gridsize[0], gridsize[1])
-# true_g.obstacles = fm_plottools.generate_obstacles(gridsize[0], gridsize[1], nobs, obs_size)
-#
-# f1, a1 = fm_plottools.init_fig(true_g)
-# fm_plottools.draw_grid(a1, true_g)
 
 plt.show()

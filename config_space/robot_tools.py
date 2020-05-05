@@ -1,13 +1,23 @@
 import numpy as np
 import polygon_tools as poly
+import csv
+
 
 class Robot2D(object):
-
-    def __init__(self, pos=poly.Point(0.0, 0.0), heading=0.0, footprint=poly.PointList([poly.Point(0.0, 0.0)])):
+    def __init__(self, pos=poly.Point(0.0, 0.0), heading=0.0, footprint=[(0.0, 0.0)], footprint_file=None):
         self.R = np.eye(2)
 
+        if footprint_file is not None:
+            with open(footprint_file, mode='r') as fh:
+                csv_reader = csv.reader(fh)
+                footprint = []
+                for row in csv_reader:
+                    assert len(row) is 2, 'Row {0} does not have 2 elements'.format(len(row)+1)
+                    footprint.append([float(row[0]), float(row[1])])
+            print('Loaded robot footprint file {0} with {1} points'.format(footprint_file, len(footprint)))
+
         self.position = pos
-        self.footprint = footprint
+        self.footprint = poly.PointList(footprint)
         self.heading = heading
         self._set_heading_transformation()
 
@@ -70,12 +80,3 @@ class RobotArm2D(object):
 
     def get_end_effector_position(self):
         return self._spine_pts[-1]
-
-
-
-
-
-
-
-
-

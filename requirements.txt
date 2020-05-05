@@ -1,0 +1,5 @@
+scikit-image>=0.13
+numpy
+matplotlib
+argparse
+tqdm
