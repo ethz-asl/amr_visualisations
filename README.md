@@ -1,5 +1,5 @@
-# amr_visualisations
-Simple python animated examples for the planning segment of the Autonomous Mobile Robots lecture slides.
+# AMR Visualisations
+Simple python animated examples for the planning and dynamics segments of the Autonomous Mobile Robots lecture slides. Primarily for students of the [course](https://asl.ethz.ch/education/lectures/autonomous_mobile_robots.html) but open to anyone interested.
 
 
 ## Basic installation and requirements
@@ -67,3 +67,6 @@ cd poincare_example
 python poincare_1d.py
 ```
 ![poincare_example_ffm](https://user-images.githubusercontent.com/10678827/81069466-2ef85080-8ee2-11ea-9317-88f10991f86b.gif)
+
+## Feedback
+Comments, feedback and PRs for changes are welcome (nicholas.lawrance AT mavt.ethz.ch).
