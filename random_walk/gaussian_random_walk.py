@@ -54,9 +54,11 @@ class WalkAnimator(object):
         self.ax.set_ylim(self.paths.min(), self.paths.max())
         self.ax.grid()
 
+
         self.ax.set_xlabel(r'$t$')
         self.ax.set_ylabel(r'$x(t)$')
         self.ax.set_title(r'Gaussian random walk, $x_{n+1} = x_n + z$, $z \sim \mathcal{N}(0, '+'{0:0.1f})$'.format(self.sigma))
+        self.fig.tight_layout()
 
         self.h_lines = []
         for p in self.paths:
@@ -84,6 +86,6 @@ anim = animation.FuncAnimation(walker.fig, walker.animate, init_func=walker.init
 
 if args.video_file:
     # animation.save('fig/arm_config_space_video.gif', writer='imagemagick', fps=1000.0/delta_t)
-    anim.save(args.video_file, writer='ffmpeg', fps=args.fps, dpi=200,
+    anim.save(args.video_file, writer='ffmpeg', codec='libx264', fps=args.fps, dpi=200,
                        extra_args=["-crf", "18", "-profile:v", "main", "-tune", "animation", "-pix_fmt", "yuv420p"])
 plt.show()
