@@ -23,8 +23,9 @@ plt.rc('text', usetex=True)
 cmap = cm.viridis
 
 parser = argparse.ArgumentParser(description='Plot the config space from Fig 6.1 in Intro to AMR textbook')
-parser.add_argument('-nx', type=int, default=101, help='Resolution (n points in each dimension')
+parser.add_argument('-nx', type=int, default=101, help='Resolution (n points in each dimension)')
 parser.add_argument('-sa', '--save-animation', action='store_true', help='Save animation')
+parser.add_argument('--arm-shadows', type=int, default=0, help='Plot shadows of arm position every n steps (0 for off)')
 args = parser.parse_args()
 
 
@@ -91,7 +92,8 @@ class ArmAnimator(object):
     h_arm = None
     plot_artists = []
 
-    def __init__(self, arm, obstacles, cspace_array, path, x_lim, y_lim, t1_lim, t2_lim, col_map=cm.viridis):
+    def __init__(self, arm, obstacles, cspace_array, path, x_lim, y_lim, t1_lim, t2_lim, col_map=cm.viridis,
+                 shadow_skip=0):
 
         self.fig, self.ax = plt.subplots(1, 2)
         self.fig.set_size_inches([9.6, 5.4])  # 1920*1080 at 200 dpi
@@ -106,6 +108,7 @@ class ArmAnimator(object):
         self.t2lim = t2_lim
         self.max_frames = self.path.shape[0]
         self.end_effector_path = poly.PointList([])
+        self._shadow_skip = shadow_skip
 
     def init_fig(self):
         for a in self.ax:
@@ -127,9 +130,18 @@ class ArmAnimator(object):
         return self.plot_artists
 
     def animate(self, i):
-        self.arm.set_link_angles(self.path[i])
 
+        # If plotting extra arm shadows, add them to the plot_artists
+        if self._shadow_skip != 0 and i % self._shadow_skip == 0:
+            gv = 0.9-float(i)/self.max_frames*0.9
+            h_arm_shadow = self.ax[0].plot(*self.arm.get_spine_points(), c=[gv, gv, gv], lw=1.0)
+            h_arm_shadow.extend(self.plot_artists)
+            self.plot_artists = h_arm_shadow
+
+        self.arm.set_link_angles(self.path[i])
         self.h_arm.set_data(*self.arm.get_spine_points())
+
+        # If the path crosses one of the boundaries, break it and add a new path
         if any(abs(self.path[i] - self.path[i-1]) > np.pi):
             old_path, = self.ax[1].plot(self.path[self.last_break:i, 0], self.path[self.last_break:i, 1], 'r--')
             self.plot_artists.append(old_path)
@@ -184,15 +196,20 @@ p_full = angle_wrap(np.array([path_theta1, path_theta2]).T)
 
 a1[1].plot(p_full[:, 0], p_full[:, 1], 'r--')
 
-## Animation
+# Animation
 animation_length = 10.0
-arm_anim = ArmAnimator(robot_arm, all_obstacles, v, p_full, [0, 10], [0, 10], theta1[[0, -1]], theta2[[0, -1]])
+arm_anim = ArmAnimator(robot_arm, all_obstacles, v, p_full, [0, 10], [0, 10], theta1[[0, -1]], theta2[[0, -1]],
+                       shadow_skip=args.arm_shadows)
 delta_t = (animation_length * 1000.0 / arm_anim.max_frames)
 arm_animation = animation.FuncAnimation(arm_anim.fig, arm_anim.animate, init_func=arm_anim.init_fig, frames=arm_anim.max_frames,
                           interval=delta_t, blit=True)
 
 if args.save_animation:
     # animation.save('fig/arm_config_space_video.gif', writer='imagemagick', fps=1000.0/delta_t)
-    arm_animation.save('fig/arm_config_space_video2.mp4', writer='ffmpeg', fps=int(1000.0/delta_t), dpi=200,
+    # animation.save('fig/arm_config/%03d.png', writer='imagemagick')
+    arm_animation.save('fig/arm_config_space_videoTEMP.mp4', writer='ffmpeg', fps=int(1000.0/delta_t), dpi=200,
                        extra_args=["-crf", "18", "-profile:v", "main", "-tune", "animation", "-pix_fmt", "yuv420p"])
+    # # Final plot frame
+    # arm_anim.fig.savefig('fig/arm_config_space_final.pdf')
+    # arm_anim.fig.savefig('fig/arm_config_space_final.png')
 plt.show()
