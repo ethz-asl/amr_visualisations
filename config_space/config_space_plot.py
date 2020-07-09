@@ -27,7 +27,7 @@ plt.rc('text', usetex=True)
 
 parser = argparse.ArgumentParser(description='Basic visualisation of configuration space for mobile robot')
 parser.add_argument('-nx', type=int, default=61, help='Resolution (n points in each dimension')
-parser.add_argument('-rf', '--robot-footprint', default='robots/bar_robot.csv', help='Robot footprint csv file')
+parser.add_argument('-rf', '--robot-footprint', default='config/bar_robot.csv', help='Robot footprint csv file')
 parser.add_argument('-no', '--n-obstacles', type=int, default=5, help='Number of obstacles')
 parser.add_argument('-ns', '--n-samples', type=int, default=5, help='Number of sample locations for testing')
 parser.add_argument('-ss', '--std-samples', type=float, default=0.1, help='Sample standard deviation')
