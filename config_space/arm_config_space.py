@@ -31,10 +31,6 @@ parser.add_argument('--arm-shadows', type=int, default=0, help='Plot shadows of 
 args = parser.parse_args()
 
 
-def make_rectangle_obstacle(xlim, ylim):
-    return poly.Polygon([[xlim[0], ylim[0]], [xlim[1], ylim[0]], [xlim[1], ylim[1]], [xlim[0], ylim[1]]])
-
-
 def angle_wrap(angles):
     return angles % (2 * np.pi)
 
@@ -160,18 +156,18 @@ class ArmAnimator(object):
 
 
 # Load world
-world = yaml.safe_load(args.world)
-all_obstacles = []
-for ob in world['obstacles']:
-    if ob['type'] is 'rectangle':
-        all_obstacles.append(make_rectangle_obstacle(ob['xlims'], ob['ylims']))
-    else:
-        raise(NotImplementedError, 'Only obstacles of type: rectangle currently implemented')
+with open(args.world, 'r') as fh:
+    world = yaml.safe_load(fh)
 
 # Note that the robot type must be implemented in the robot_tools module, so the example robot:
 #  {type: RobotArm2D, parameters: {base_position: [5.0, 5.0], link_lengths: [2.1, 2.1]}
-# would call as a constructor: robot_tools.RobotArm2D(base_position=[5.0, 5.0], link_lengths=[2.1, 2.1])
+# would call as constructor: robot_tools.RobotArm2D(base_position=[5.0, 5.0], link_lengths=[2.1, 2.1])
 robot_arm = getattr(robot_tools, world['robot']['type'])(**world['robot']['parameters'])
+
+all_obstacles = []
+for ob in world['obstacles']:
+    # Add each obstacle (must be a Polygon or derived class like Rectangle from poly_tools)
+    all_obstacles.append(getattr(poly, ob['type'])(**ob['parameters']))
 
 theta1, theta2 = np.linspace(0, 2.0*np.pi, args.nx), np.linspace(0, 2.0*np.pi, args.nx)
 v = np.zeros((len(theta1), len(theta2)), dtype=int)

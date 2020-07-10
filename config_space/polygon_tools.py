@@ -195,6 +195,12 @@ class Polygon(PointList):
         #
         # return False
 
+
+class Rectangle(Polygon):
+    def __init__(self, xlim, ylim):
+        super(Rectangle, self).__init__([[xlim[0], ylim[0]], [xlim[1], ylim[0]], [xlim[1], ylim[1]], [xlim[0], ylim[1]]])
+
+
 def line_intersect(l0, l1):
     # Assume ordered lines (OrderedEdge objects)
     lsign = is_left(l0.lp, l0.rp, l1.lp)    #  l1 left point sign
