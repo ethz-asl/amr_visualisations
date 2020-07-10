@@ -50,8 +50,13 @@ Again, basic help can be found with
 ```
 python arm_config_space.py -h
 ```
-The obstacles and robot are currently hardcoded, but the code should work for different obstacle and robot link lengths and can be modified in the code to see how the config space changes.
-(This could be improved if useful?)
+The robot parameters and workspace obstacles are defined with a basic yaml file. 
+The default configuration can be found in the `config/block_world.yaml` file.
+To set a new workspace, create a copy of the `block_world.yaml` file, edit the robot and/or obstacles, and use the `-w` flag to specify your new world file:
+```
+python arm_config_space.py -w config/my_new_world.yaml
+``` 
+Currently, only a basic jointed robot arm and polygonal obstacles are implemented.
 
 ![arm_config_space_video](https://user-images.githubusercontent.com/10678827/81062807-eedfa080-8ed6-11ea-8d94-a39898cf47cd.gif)
 
