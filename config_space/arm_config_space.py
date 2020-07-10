@@ -7,6 +7,7 @@ from matplotlib.collections import PatchCollection
 import matplotlib.animation as animation
 import matplotlib.cm as cm
 import argparse
+import yaml
 
 """ 
 
@@ -24,6 +25,7 @@ cmap = cm.viridis
 
 parser = argparse.ArgumentParser(description='Plot the config space from Fig 6.1 in Intro to AMR textbook')
 parser.add_argument('-nx', type=int, default=101, help='Resolution (n points in each dimension)')
+parser.add_argument('-w', '--world', default='config/block_world.yaml', help='World definition (obstacles)')
 parser.add_argument('-sa', '--save-animation', action='store_true', help='Save animation')
 parser.add_argument('--arm-shadows', type=int, default=0, help='Plot shadows of arm position every n steps (0 for off)')
 args = parser.parse_args()
@@ -157,15 +159,19 @@ class ArmAnimator(object):
         return self.plot_artists
 
 
-# Generate obstacles (or add your own, maybe make this a yaml input?)
-ob1 = make_rectangle_obstacle([2.3, 3.4], [7, 9.8])
-ob2 = make_rectangle_obstacle([7.3, 8.5], [7.6, 10])
-ob3 = make_rectangle_obstacle([1.3, 3], [2.8, 3.8])
-ob4 = make_rectangle_obstacle([5, 7.1], [0.9, 3.7])
+# Load world
+world = yaml.safe_load(args.world)
+all_obstacles = []
+for ob in world['obstacles']:
+    if ob['type'] is 'rectangle':
+        all_obstacles.append(make_rectangle_obstacle(ob['xlims'], ob['ylims']))
+    else:
+        raise(NotImplementedError, 'Only obstacles of type: rectangle currently implemented')
 
-all_obstacles = [ob1, ob2, ob3, ob4]
-
-robot_arm = robot_tools.RobotArm2D(base_position=[5.0, 5.0], link_lengths=[2.1, 2.1])
+# Note that the robot type must be implemented in the robot_tools module, so the example robot:
+#  {type: RobotArm2D, parameters: {base_position: [5.0, 5.0], link_lengths: [2.1, 2.1]}
+# would call as a constructor: robot_tools.RobotArm2D(base_position=[5.0, 5.0], link_lengths=[2.1, 2.1])
+robot_arm = getattr(robot_tools, world['robot']['type'])(**world['robot']['parameters'])
 
 theta1, theta2 = np.linspace(0, 2.0*np.pi, args.nx), np.linspace(0, 2.0*np.pi, args.nx)
 v = np.zeros((len(theta1), len(theta2)), dtype=int)

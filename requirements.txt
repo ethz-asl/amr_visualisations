@@ -3,3 +3,4 @@ numpy
 matplotlib
 argparse
 tqdm
+pyyaml
