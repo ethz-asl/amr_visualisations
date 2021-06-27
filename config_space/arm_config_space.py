@@ -24,15 +24,7 @@ Author: Nicholas Lawrance (nicholas.lawrance@mavt.ethz.ch)
 plt.rc('font', **{'family': 'serif', 'sans-serif': ['Computer Modern Roman']})
 plt.rc('text', usetex=True)
 colour_map = cm.viridis
-# colour_map = matplotlib.colors.ListedColormap([[0.4, 0.4, 0.4, 1.0]])
-
-parser = argparse.ArgumentParser(description='Plot the config space from Fig 6.1 in Intro to AMR textbook')
-parser.add_argument('-nx', type=int, default=101, help='Resolution (n points in each dimension)')
-parser.add_argument('-w', '--world', default='config/block_world.yaml', help='World definition (obstacles)')
-parser.add_argument('-sa', '--save-animation', action='store_true', help='Save animation')
-parser.add_argument('-na', '--no-animation', action='store_true', help='Don\'t animate')
-parser.add_argument('--arm-shadows', type=int, default=0, help='Plot shadows of arm position every n steps (0 for off)')
-args = parser.parse_args()
+colour_map = matplotlib.colors.ListedColormap([[0.4, 0.4, 0.4, 1.0]])
 
 
 def angle_wrap(angles):
@@ -167,73 +159,98 @@ class ArmAnimator(object):
         return self.plot_artists
 
 
-# Load world
-with open(args.world, 'r') as fh:
-    world = yaml.safe_load(fh)
+class PlanningProblem(object):
 
-# Note that the robot type must be implemented in the robot_tools module, so the example robot:
-#  {type: RobotArm2D, parameters: {base_position: [5.0, 5.0], link_lengths: [2.1, 2.1]}
-# would call as constructor: robot_tools.RobotArm2D(base_position=[5.0, 5.0], link_lengths=[2.1, 2.1])
-robot_arm = getattr(robot_tools, world['robot']['type'])(**world['robot']['parameters'])
+    def __init__(self, world):
+        # Load world
+        with open(world, 'r') as fh:
+            self.world = yaml.safe_load(fh)
 
-all_obstacles = []
-for ob in world['obstacles']:
-    # Add each obstacle (must be a Polygon or derived class like Rectangle from poly_tools)
-    all_obstacles.append(getattr(poly, ob['type'])(**ob['parameters']))
+        # Note that the robot type must be implemented in the robot_tools module, so the example robot:
+        #  {type: RobotArm2D, parameters: {base_position: [5.0, 5.0], link_lengths: [2.1, 2.1]}
+        # would call as constructor: robot_tools.RobotArm2D(base_position=[5.0, 5.0], link_lengths=[2.1, 2.1])
+        self.robot = getattr(robot_tools, self.world['robot']['type'])(**self.world['robot']['parameters'])
+        self.obstacles = []
+        for ob in self.world['obstacles']:
+            # Add each obstacle (must be a Polygon or derived class like Rectangle from poly_tools)
+            self.obstacles.append(getattr(poly, ob['type'])(**ob['parameters']))
 
-theta1, theta2 = np.linspace(0, 2.0*np.pi, args.nx), np.linspace(0, 2.0*np.pi, args.nx)
-v = np.zeros((len(theta1), len(theta2)), dtype=int)
+    def construct_config_space(self, nx=101):
+        # TODO: This should be more general (number of dimensions, wraparound etc. in the robot class)
+        theta1, theta2 = np.linspace(0, 2.0 * np.pi, nx), np.linspace(0, 2.0 * np.pi, nx)
+        v = np.zeros((len(theta1), len(theta2)), dtype=int)
 
-for i, t1 in enumerate(theta1):
-    for j, t2 in enumerate(theta2):
-        robot_arm.set_link_angles([t1, t2])
-        in_obs = 0
-        fp = robot_arm.get_current_polygon()
-        for o_num, o in enumerate(all_obstacles):
-            if fp.intersect(o):
-                in_obs = o_num+1
-                break
-        v[i, j] = in_obs
+        for i, t1 in enumerate(theta1):
+            for j, t2 in enumerate(theta2):
+                self.robot.set_link_angles([t1, t2])
+                in_obs = 0
+                fp = self.robot.get_current_polygon()
+                for o_num, o in enumerate(self.obstacles):
+                    if fp.intersect(o):
+                        in_obs = o_num + 1
+                        break
+                v[i, j] = in_obs
 
-
-# Path from textbook
-path_fit = np.polyfit([0.3, 1.6, 4.3, 5.9], [1.2, 0.8, 3.3, 3.2], 3)
-path_theta2 = np.linspace(0.3, 5.9, 300)
-path_theta1 = np.polyval(path_fit, path_theta2)
-p_full = angle_wrap(np.array([path_theta1, path_theta2]).T)
-
-# Piecewise linear path
-# p_full = angle_wrap(linear_path([[1.2, 0.3], [2.5, -2.4], [4, -2.4], [3.2, -0.2]], 100))
-
-ee_path = robot_arm.end_effector_path(p_full)
-
-f1, a1 = plt.subplots(1, 2)
-f1.set_size_inches([9.6, 4.8])
-# f2, a2 = plt.subplots(1, 1)
-# f2.set_size_inches([4.8, 4.8])
-# a1 = [a1, a2]
-robot_arm.set_link_angles(p_full[0])
-plot_config_space(a1, all_obstacles, robot_arm, v, colour_map, [0, 10], [0, 10], theta1[[0, -1]], theta2[[0, -1]])
-
-a1[0].plot(ee_path[:, 0], ee_path[:, 1], 'r--')
-a1[1].plot(p_full[:, 0], p_full[:, 1], 'r--')
+        return [theta1, theta2], v
 
 
-if not args.no_animation:
-    # Animation
-    animation_length = 10.0
-    arm_anim = ArmAnimator(robot_arm, all_obstacles, v, p_full, [0, 10], [0, 10], theta1[[0, -1]], theta2[[0, -1]],
-                           shadow_skip=args.arm_shadows)
-    delta_t = (animation_length * 1000.0 / arm_anim.max_frames)
-    arm_animation = animation.FuncAnimation(arm_anim.fig, arm_anim.animate, init_func=arm_anim.init_fig, frames=arm_anim.max_frames,
-                              interval=delta_t, blit=True)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Plot the config space from Fig 6.1 in Intro to AMR textbook')
+    parser.add_argument('-nx', type=int, default=101, help='Resolution (n points in each dimension)')
+    parser.add_argument('-w', '--world', default='config/block_world.yaml', help='World definition (obstacles)')
+    parser.add_argument('-sa', '--save-animation', default=None, help='Save animation to file')
+    parser.add_argument('-na', '--no-animation', action='store_true', help='Don\'t animate')
+    parser.add_argument('--arm-shadows', type=int, default=0,
+                        help='Plot shadows of arm position every n steps (0 for off)')
+    args = parser.parse_args()
 
-    if args.save_animation:
-        # animation.save('fig/arm_config_space_video.gif', writer='imagemagick', fps=1000.0/delta_t)
-        # animation.save('fig/arm_config/%03d.png', writer='imagemagick')
-        arm_animation.save('fig/arm_config_space_videoTEMP.mp4', writer='ffmpeg', fps=int(1000.0/delta_t), dpi=200,
-                           extra_args=["-crf", "18", "-profile:v", "main", "-tune", "animation", "-pix_fmt", "yuv420p"])
-        # # Final plot frame
-        # arm_anim.fig.savefig('fig/arm_config_space_final.pdf')
-        # arm_anim.fig.savefig('fig/arm_config_space_final.png')
-plt.show()
+    arm_problem = PlanningProblem(args.world)
+    theta, c_space = arm_problem.construct_config_space(args.nx)
+
+    # Example path from textbook
+    path_fit = np.polyfit([0.3, 1.6, 4.3, 5.9], [1.2, 0.8, 3.3, 3.2], 3)
+    path_theta2 = np.linspace(0.3, 5.9, 300)
+    path_theta1 = np.polyval(path_fit, path_theta2)
+    path_full = angle_wrap(np.array([path_theta1, path_theta2]).T)
+
+    # Piecewise linear path
+    # path_full = angle_wrap(linear_path([[1.2, 0.3], [2.5, -2.4], [4, -2.4], [3.2, -0.2]], 100))
+
+    ee_path = arm_problem.robot.end_effector_path(path_full)
+
+    f1, a1 = plt.subplots(1, 2)
+    f1.set_size_inches([9.6, 4.8])
+    # f2, a2 = plt.subplots(1, 1)
+    # f2.set_size_inches([4.8, 4.8])
+    # a1 = [a1, a2]
+    arm_problem.robot.set_link_angles(path_full[0])
+    try:
+        map_lims = arm_problem.world['world_dim']
+    except KeyError:
+        map_lims = [[0, 10], [0, 10]]
+    plot_config_space(a1, arm_problem.obstacles, arm_problem.robot, c_space, colour_map, map_lims[0], map_lims[1],
+                      theta[0][[0, -1]], theta[1][[0, -1]])
+
+    tt = np.linspace(0, 2*np.pi, 101)
+    a1[0].plot(arm_problem.robot._link_lengths[0]*np.cos(tt), arm_problem.robot._link_lengths[0]*np.sin(tt), '--', color='grey', lw=0.5)
+    # a1[0].plot(ee_path[:, 0], ee_path[:, 1], 'r--')
+    # a1[1].plot(path_full[:, 0], path_full[:, 1], 'r--')
+
+    if not args.no_animation:
+        # Animation
+        animation_length = 10.0
+        arm_anim = ArmAnimator(arm_problem.robot, arm_problem.obstacles, c_space, path_full, [0, 10], [0, 10], theta[0][[0, -1]], theta[1][[0, -1]],
+                               shadow_skip=args.arm_shadows)
+        delta_t = (animation_length * 1000.0 / arm_anim.max_frames)
+        arm_animation = animation.FuncAnimation(arm_anim.fig, arm_anim.animate, init_func=arm_anim.init_fig, frames=arm_anim.max_frames,
+                                  interval=delta_t, blit=True)
+
+        if args.save_animation is not None:
+            # animation.save('fig/arm_config_space_video.gif', writer='imagemagick', fps=1000.0/delta_t)
+            # animation.save('fig/arm_config/%03d.png', writer='imagemagick')
+            arm_animation.save(args.save_animation, writer='ffmpeg', fps=int(1000.0/delta_t), dpi=200,
+                               extra_args=["-crf", "18", "-profile:v", "main", "-tune", "animation", "-pix_fmt", "yuv420p"])
+            # # Final plot frame
+            # arm_anim.fig.savefig('fig/arm_config_space_final.pdf')
+            # arm_anim.fig.savefig('fig/arm_config_space_final.png')
+    plt.show()
