@@ -12,7 +12,7 @@ class Robot2D(object):
                 csv_reader = csv.reader(fh)
                 footprint = []
                 for row in csv_reader:
-                    assert len(row) is 2, 'Row {0} does not have 2 elements'.format(len(row)+1)
+                    assert len(row) == 2, 'Row {0} does not have 2 elements'.format(len(row)+1)
                     footprint.append([float(row[0]), float(row[1])])
             print('Loaded robot footprint file {0} with {1} points'.format(footprint_file, len(footprint)))
 
@@ -80,3 +80,13 @@ class RobotArm2D(object):
 
     def get_end_effector_position(self):
         return self._spine_pts[-1]
+
+    def end_effector_path(self, config_path):
+        c_pose = self._link_angles.copy()
+        ee_path = []
+        for pose in config_path:
+            self.set_link_angles(pose)
+            ee_path.append(self.get_end_effector_position())
+        self.set_link_angles(c_pose)
+        return np.array(ee_path)
+
