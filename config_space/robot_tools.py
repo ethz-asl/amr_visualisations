@@ -12,7 +12,7 @@ class Robot2D(object):
                 csv_reader = csv.reader(fh)
                 footprint = []
                 for row in csv_reader:
-                    assert len(row) is 2, 'Row {0} does not have 2 elements'.format(len(row)+1)
+                    assert len(row) == 2, 'Row {0} does not have 2 elements'.format(len(row)+1)
                     footprint.append([float(row[0]), float(row[1])])
             print('Loaded robot footprint file {0} with {1} points'.format(footprint_file, len(footprint)))
 
