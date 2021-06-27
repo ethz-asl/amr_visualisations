@@ -4,7 +4,7 @@ import csv
 
 
 class Robot2D(object):
-    def __init__(self, pos=poly.Point(0.0, 0.0), heading=0.0, footprint=[(0.0, 0.0)], footprint_file=None):
+    def __init__(self, pos=[0.0, 0.0], heading=0.0, footprint=[(0.0, 0.0)], footprint_file=None):
         self.R = np.eye(2)
 
         if footprint_file is not None:
@@ -16,7 +16,7 @@ class Robot2D(object):
                     footprint.append([float(row[0]), float(row[1])])
             print('Loaded robot footprint file {0} with {1} points'.format(footprint_file, len(footprint)))
 
-        self.position = pos
+        self.position = poly.Point(pos[0], pos[1])
         self.footprint = poly.PointList(footprint)
         self.heading = heading
         self._set_heading_transformation()
