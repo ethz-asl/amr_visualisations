@@ -1,6 +1,7 @@
-scikit-image>=0.13
 numpy
 matplotlib
 argparse
 tqdm
 pyyaml
+scipy
+scikit-image>=0.13

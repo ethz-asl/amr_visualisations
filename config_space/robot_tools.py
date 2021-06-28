@@ -20,7 +20,6 @@ def workspace_builder(workspace):
 
 
 class Workspace2D(object):
-
     def __init__(self, limits=[[0,1.0],[0,1.0]], obstacles=[]):
         self.limits = np.array(limits)
         assert self.limits.shape == (2,2), 'Currently only implemented for 2D workspaces'
@@ -29,8 +28,27 @@ class Workspace2D(object):
             # Add each obstacle (must be a Polygon or derived class like Rectangle from poly_tools)
             self.obstacles.append(getattr(poly, ob['type'])(**ob['parameters']))
 
+    def in_collision_point(self, point):
+        p = poly.Point(*point)
+        collision = False
+        for o in self.obstacles:
+            if o.point_inside(p):
+                collision = True
+                break
+        return collision
+
+    def in_collision_poly(self, polygon):
+        collision = False
+        for o in self.obstacles:
+            if polygon.intersect(o):
+                collision = True
+                break
+        return collision
+
 
 class Robot2D(object):
+    _c_poly = None
+
     def __init__(self, pos=[0.0, 0.0], heading=0.0, footprint=[(0.0, 0.0)], footprint_file=None):
         self.R = np.eye(2)
 
@@ -47,6 +65,8 @@ class Robot2D(object):
         self.footprint = poly.PointList(footprint)
         self.heading = heading
         self._set_heading_transformation()
+        self._update_poly()
+
 
     def _set_heading_transformation(self):
         ct, st = np.cos(self.heading), np.sin(self.heading)
@@ -55,16 +75,21 @@ class Robot2D(object):
     def set_heading(self, heading):
         self.heading = heading
         self._set_heading_transformation()
+        self._update_poly()
 
     def set_position(self, pos):
         self.position = pos
+        self._update_poly()
 
     def set_footprint(self, footprint):
         self.footprint = footprint
+        self._update_poly()
+
+    def _update_poly(self):
+        self._c_poly = poly.Polygon([poly.Point(*(np.matmul(self.R, p)+self.position)) for p in self.footprint])
 
     def get_current_polygon(self):
-        out_poly = poly.Polygon([poly.Point(*(np.matmul(self.R, p)+self.position)) for p in self.footprint])
-        return out_poly
+        return self._c_poly
 
 
 class RobotArm2D(object):
