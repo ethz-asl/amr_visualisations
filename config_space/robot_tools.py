@@ -3,6 +3,10 @@ import polygon_tools as poly
 import csv
 import yaml
 import sys
+import matplotlib as plt
+from matplotlib.patches import Polygon as PlotPolygon
+from matplotlib.collections import PatchCollection
+import matplotlib.cm as cm
 
 
 def robot_builder(robot):
@@ -44,6 +48,24 @@ class Workspace2D(object):
                 collision = True
                 break
         return collision
+
+    def plot(self, hax=None, cmap=cm.viridis):
+        if hax is None:
+            f, hax = plt.subplots(1)
+        h_obs = []
+        for o in self.obstacles:
+            h_obs.append(PlotPolygon(o, zorder=1))
+        c_obs = PatchCollection(h_obs, cmap=cmap)
+        # This sets colors for some reason (command in Polygon does not)
+        c_obs.set_array(np.linspace(0, 1.0, len(self.obstacles) + 1)[1:])
+        hax.add_collection(c_obs)
+
+        hax.set_aspect('equal')
+
+        hax.set_xlabel(r'$x$')
+        hax.set_ylabel(r'$y$')
+        hax.set_xlim(self.limits[0])
+        hax.set_ylim(self.limits[1])
 
 
 class Robot2D(object):

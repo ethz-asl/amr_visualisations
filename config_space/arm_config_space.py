@@ -78,10 +78,9 @@ def plot_config_space(ax, obstacles, arm, cspace_array, col_map, xlim, ylim, the
 
     ax[1].set_xticklabels([r'$0$', r'$\pi/2$', r'$\pi$', r'3$\pi/2$', r'$2\pi$'])
     ax[1].set_yticklabels([r'$0$', r'$\pi/2$', r'$\pi$', r'3$\pi/2$', r'$2\pi$'])
-    ax[0].grid(which='both', axis='both')
-    ax[1].grid(which='both', axis='both')
-    ax[0].set_axisbelow(True)
-    ax[1].set_axisbelow(True)
+    for a in ax:
+        a.grid(which='both', axis='both')
+        a.set_axisbelow(True)
 
     cspace_array = np.ma.masked_where(cspace_array == 0.0, cspace_array)
     col_map.set_bad(color='white')
