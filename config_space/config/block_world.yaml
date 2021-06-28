@@ -4,27 +4,32 @@ robot:
     base_position: [5.0, 5.0]
     link_lengths: [2.1, 2.1]
 
-obstacles:
-  - type: Rectangle
-    parameters:
-      xlim: [2.3, 3.4]
-      ylim: [7, 9.8]
+workspace:
+  type: Workspace2D
+  parameters:
+    limits: [[0, 10.0], [0, 10.0]]
 
-  - type: Rectangle
-    parameters:
-      xlim: [7.3, 8.5]
-      ylim: [7.6, 10]
+    obstacles:
+      - type: Rectangle
+        parameters:
+          xlim: [2.3, 3.4]
+          ylim: [7, 9.8]
 
-  - type: Rectangle
-    parameters:
-      xlim: [1.3, 3]
-      ylim: [2.8, 3.8]
+      - type: Rectangle
+        parameters:
+          xlim: [7.3, 8.5]
+          ylim: [7.6, 10]
 
-  # This is equivalent to a Rectangle, just an example to show how other polygons could be defined by their vertices
-  - type: Polygon
-    parameters:
-      p_in:
-        - [5, 0.9]
-        - [7.1, 0.9]
-        - [7.1, 3.7]
-        - [5, 3.7]
+      - type: Rectangle
+        parameters:
+          xlim: [1.3, 3]
+          ylim: [2.8, 3.8]
+
+      # This is equivalent to a Rectangle, just an example to show how other polygons could be defined by their vertices
+      - type: Polygon
+        parameters:
+          p_in:
+            - [5, 0.9]
+            - [7.1, 0.9]
+            - [7.1, 3.7]
+            - [5, 3.7]

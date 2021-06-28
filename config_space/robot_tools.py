@@ -1,6 +1,33 @@
 import numpy as np
 import polygon_tools as poly
 import csv
+import yaml
+import sys
+
+
+def robot_builder(robot):
+    # Note that the robot type must be implemented in this module, so the example robot:
+    #  {type: RobotArm2D, parameters: {base_position: [5.0, 5.0], link_lengths: [2.1, 2.1]}
+    # would call as constructor: robot_tools.RobotArm2D(base_position=[5.0, 5.0], link_lengths=[2.1, 2.1])
+    return getattr(sys.modules[__name__], robot['type'])(**robot['parameters'])
+
+
+def workspace_builder(workspace):
+    # Note that the workspace type must be implemented in this module, so the example workspace:
+    #  {type: Workspace2D, parameters: {limits=[[0,1.0],[0,1.0]], obstacles=[]}
+    # would call as constructor: robot_tools.Workspace2D(limits=[[0,1.0],[0,1.0]], obstacles=[])
+    return getattr(sys.modules[__name__], workspace['type'])(**workspace['parameters'])
+
+
+class Workspace2D(object):
+
+    def __init__(self, limits=[[0,1.0],[0,1.0]], obstacles=[]):
+        self.limits = np.array(limits)
+        assert self.limits.shape == (2,2), 'Currently only implemented for 2D workspaces'
+        self.obstacles = []
+        for ob in obstacles:
+            # Add each obstacle (must be a Polygon or derived class like Rectangle from poly_tools)
+            self.obstacles.append(getattr(poly, ob['type'])(**ob['parameters']))
 
 
 class Robot2D(object):
@@ -90,3 +117,36 @@ class RobotArm2D(object):
         self.set_link_angles(c_pose)
         return np.array(ee_path)
 
+
+class PlanningProblem(object):
+
+    def __init__(self, world_file):
+
+        # Load world
+        with open(world_file, 'r') as fh:
+            world = yaml.safe_load(fh)
+
+        self.workspace = workspace_builder(world['workspace'])
+        # Note that the robot type must be implemented in the robot_tools module, so the example robot:
+        #  {type: RobotArm2D, parameters: {base_position: [5.0, 5.0], link_lengths: [2.1, 2.1]}
+        # would call as constructor: robot_tools.RobotArm2D(base_position=[5.0, 5.0], link_lengths=[2.1, 2.1])
+        self.robot = robot_builder(world['robot'])
+
+
+    def construct_config_space(self, nx=101):
+        # TODO: This should be more general (number of dimensions, wraparound etc. in the robot class)
+        theta1, theta2 = np.linspace(0, 2.0 * np.pi, nx), np.linspace(0, 2.0 * np.pi, nx)
+        v = np.zeros((len(theta1), len(theta2)), dtype=int)
+
+        for i, t1 in enumerate(theta1):
+            for j, t2 in enumerate(theta2):
+                self.robot.set_link_angles([t1, t2])
+                in_obs = 0
+                fp = self.robot.get_current_polygon()
+                for o_num, o in enumerate(self.workspace.obstacles):
+                    if fp.intersect(o):
+                        in_obs = o_num + 1
+                        break
+                v[i, j] = in_obs
+
+        return [theta1, theta2], v

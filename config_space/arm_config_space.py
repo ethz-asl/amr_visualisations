@@ -159,40 +159,6 @@ class ArmAnimator(object):
         return self.plot_artists
 
 
-class PlanningProblem(object):
-
-    def __init__(self, world):
-        # Load world
-        with open(world, 'r') as fh:
-            self.world = yaml.safe_load(fh)
-
-        # Note that the robot type must be implemented in the robot_tools module, so the example robot:
-        #  {type: RobotArm2D, parameters: {base_position: [5.0, 5.0], link_lengths: [2.1, 2.1]}
-        # would call as constructor: robot_tools.RobotArm2D(base_position=[5.0, 5.0], link_lengths=[2.1, 2.1])
-        self.robot = getattr(robot_tools, self.world['robot']['type'])(**self.world['robot']['parameters'])
-        self.obstacles = []
-        for ob in self.world['obstacles']:
-            # Add each obstacle (must be a Polygon or derived class like Rectangle from poly_tools)
-            self.obstacles.append(getattr(poly, ob['type'])(**ob['parameters']))
-
-    def construct_config_space(self, nx=101):
-        # TODO: This should be more general (number of dimensions, wraparound etc. in the robot class)
-        theta1, theta2 = np.linspace(0, 2.0 * np.pi, nx), np.linspace(0, 2.0 * np.pi, nx)
-        v = np.zeros((len(theta1), len(theta2)), dtype=int)
-
-        for i, t1 in enumerate(theta1):
-            for j, t2 in enumerate(theta2):
-                self.robot.set_link_angles([t1, t2])
-                in_obs = 0
-                fp = self.robot.get_current_polygon()
-                for o_num, o in enumerate(self.obstacles):
-                    if fp.intersect(o):
-                        in_obs = o_num + 1
-                        break
-                v[i, j] = in_obs
-
-        return [theta1, theta2], v
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Plot the config space from Fig 6.1 in Intro to AMR textbook')
@@ -204,7 +170,8 @@ if __name__ == "__main__":
                         help='Plot shadows of arm position every n steps (0 for off)')
     args = parser.parse_args()
 
-    arm_problem = PlanningProblem(args.world)
+
+    arm_problem = robot_tools.PlanningProblem(args.world)
     theta, c_space = arm_problem.construct_config_space(args.nx)
 
     # Example path from textbook
@@ -225,10 +192,10 @@ if __name__ == "__main__":
     # a1 = [a1, a2]
     arm_problem.robot.set_link_angles(path_full[0])
     try:
-        map_lims = arm_problem.world['world_dim']
+        map_lims = arm_problem.workspace.limits
     except KeyError:
         map_lims = [[0, 10], [0, 10]]
-    plot_config_space(a1, arm_problem.obstacles, arm_problem.robot, c_space, colour_map, map_lims[0], map_lims[1],
+    plot_config_space(a1, arm_problem.workspace.obstacles, arm_problem.robot, c_space, colour_map, map_lims[0], map_lims[1],
                       theta[0][[0, -1]], theta[1][[0, -1]])
 
     tt = np.linspace(0, 2*np.pi, 101)
@@ -239,7 +206,7 @@ if __name__ == "__main__":
     if not args.no_animation:
         # Animation
         animation_length = 10.0
-        arm_anim = ArmAnimator(arm_problem.robot, arm_problem.obstacles, c_space, path_full, [0, 10], [0, 10], theta[0][[0, -1]], theta[1][[0, -1]],
+        arm_anim = ArmAnimator(arm_problem.robot, arm_problem.workspace.obstacles, c_space, path_full,  map_lims[0], map_lims[1], theta[0][[0, -1]], theta[1][[0, -1]],
                                shadow_skip=args.arm_shadows)
         delta_t = (animation_length * 1000.0 / arm_anim.max_frames)
         arm_animation = animation.FuncAnimation(arm_anim.fig, arm_anim.animate, init_func=arm_anim.init_fig, frames=arm_anim.max_frames,
