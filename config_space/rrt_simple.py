@@ -7,8 +7,9 @@ import yaml
 from matplotlib.ticker import MultipleLocator
 from matplotlib.collections import LineCollection
 from scipy.spatial import KDTree
-from scipy.spatial.distance import euclidean
+from scipy.spatial.distance import euclidean, cdist
 from scipy.spatial import Voronoi, voronoi_plot_2d
+import time
 
 """ 
 
@@ -25,12 +26,19 @@ class RRTree(object):
     _start = None
     _goal = None
     _kdtree = None
+    _kd = False
     vertices = []
     edges = []
 
-    def __init__(self, world, start=None, goal=None, delta=1.0, collision_step=0.01):
+    def __init__(self, world, start=None, goal=None, delta=1.0, collision_step=0.01, nearest='cdist'):
         self.world = robot_tools.PlanningProblem(world)
         self._delta = delta
+        if nearest == 'kdtree':
+            self._get_nearest = self._get_nearest_kd
+            self._kd = True
+        else:
+            self._get_nearest = self._get_nearest_cdist
+
         if start is not None:
             self.set_start(start)
         if goal is not None:
@@ -49,7 +57,8 @@ class RRTree(object):
     def search(self, imax = 1000):
         self.vertices = [self._start]
         self.edges = [[]]
-        self._kdtree = KDTree(self.vertices)
+        if self._kd:
+            self._kdtree = KDTree(self.vertices)
 
         for i in range(0, imax):
             self._search_step()
@@ -63,7 +72,8 @@ class RRTree(object):
             self.vertices.append(x_new)
             self.edges.append([])
             self.edges[i_near].append(len(self.vertices) - 1)
-            self._kdtree = KDTree(self.vertices)
+            if self._kd:
+                self._kdtree = KDTree(self.vertices)
 
     # def animated_search(self, imax=100, show_voronoi = True):
 
@@ -86,10 +96,15 @@ class RRTree(object):
 
         return x_rand
 
-    def _get_nearest(self, point):
-        # Lazy KDTRee from scipy
+    def _get_nearest_kd(self, point):
+        # Lazy KDTRee from scipy - deprecated (cdist is much faster)
         dist, ind = self._kdtree.query(point, k=1)
         return ind
+
+    def _get_nearest_cdist(self, point):
+        d_full = cdist(self.vertices, [point]).flatten()
+        i_best = np.argmin(d_full)
+        return i_best
 
     def _steer(self, x_near, x_rand):
         dd = euclidean(x_near, x_rand)
@@ -134,15 +149,21 @@ if __name__ == "__main__":
     parser.add_argument('-w', '--world', default='config/rrt_sample_world.yaml', help='World definition (obstacles)')
     parser.add_argument('-i', '--iterations', type=int, default=100, help='Max RRT iterations')
     parser.add_argument('--save-fig', action='store_true', help='Save figure location')
+    parser.add_argument('-kd', action='store_true', help='Use kd_tree (it is outright slower though!)')
     args = parser.parse_args()
     np.random.seed(1)
 
-    rrt = RRTree(args.world)
+    if args.kd:
+        nearest = 'kdtree'
+    else:
+        nearest = 'cdist'
+    rrt = RRTree(args.world, nearest=nearest)
 
     start_pos = [5.0, 5.0]
     rrt.set_start(start_pos)
+    t0 = time.time()
     rrt.search(imax=args.iterations)
-
+    print('RRT search complete in {0}s ({1})'.format(time.time()-t0, nearest))
     f = plt.figure(figsize=(6, 6))
     ax = f.add_subplot(1, 1, 1)
     if len(rrt.vertices) >= 4:
