@@ -7,6 +7,7 @@ import matplotlib as plt
 from matplotlib.patches import Polygon as PlotPolygon
 from matplotlib.collections import PatchCollection
 import matplotlib.cm as cm
+import logging
 
 
 def robot_builder(robot):
@@ -81,7 +82,7 @@ class Robot2D(object):
                 for row in csv_reader:
                     assert len(row) == 2, 'Row {0} does not have 2 elements'.format(len(row)+1)
                     footprint.append([float(row[0]), float(row[1])])
-            print('Loaded robot footprint file {0} with {1} points'.format(footprint_file, len(footprint)))
+            logging.info('Loaded robot footprint file {0} with {1} points'.format(footprint_file, len(footprint)))
 
         self.position = poly.Point(pos[0], pos[1])
         self.footprint = poly.PointList(footprint)

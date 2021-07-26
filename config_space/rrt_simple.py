@@ -1,21 +1,18 @@
+import time
+import logging
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-import polygon_tools as poly
 import robot_tools
-import argparse
-import yaml
-from matplotlib.ticker import MultipleLocator
 from matplotlib.collections import LineCollection
-from scipy.spatial import KDTree
-from scipy.spatial.distance import euclidean, cdist
-from scipy.spatial import Voronoi, voronoi_plot_2d
-import time
+from scipy.spatial import KDTree, Voronoi, voronoi_plot_2d, distance
+
 
 """ 
 
-Simple RRT implementation for visualising RRTs
+Simple RRT implementation for visualising RRTs with Voronoi regions
 
-Requires: numpy, matplotlib, argparse, pyyaml
+Requires: numpy, scipy, matplotlib, argparse, pyyaml
 
 Author: Nicholas Lawrance (nicholas.lawrance@mavt.ethz.ch)
 
@@ -30,20 +27,24 @@ class RRTree(object):
     vertices = []
     edges = []
 
-    def __init__(self, world, start=None, goal=None, delta=1.0, collision_step=0.01, nearest='cdist'):
+    def __init__(self, world, start=None, goal=None, delta=1.0,
+                 collision_step=0.01, nearest='cdist'):
         self.world = robot_tools.PlanningProblem(world)
+        logging.info('Loaded RRT search problem from {0}'.format(world))
         self._delta = delta
         if nearest == 'kdtree':
             self._get_nearest = self._get_nearest_kd
             self._kd = True
+            logging.info('Using kd tree nearest-neighbour search')
         else:
             self._get_nearest = self._get_nearest_cdist
+            logging.info('Using scipy cdist nearest-neighbour search')
 
         if start is not None:
             self.set_start(start)
         if goal is not None:
             self.set_goal(goal)
-        self._collision_step_dist = collision_step*euclidean(self.world.workspace.limits[:,0], self.world.workspace.limits[:,1])
+        self._collision_step_dist = collision_step*distance.euclidean(self.world.workspace.limits[:,0], self.world.workspace.limits[:,1])
 
     def set_start(self, start):
         # Slightly hacky because we are assuming planning in workspace, not config space
@@ -102,12 +103,12 @@ class RRTree(object):
         return ind
 
     def _get_nearest_cdist(self, point):
-        d_full = cdist(self.vertices, [point]).flatten()
+        d_full = distance.cdist(self.vertices, [point]).flatten()
         i_best = np.argmin(d_full)
         return i_best
 
     def _steer(self, x_near, x_rand):
-        dd = euclidean(x_near, x_rand)
+        dd = distance.euclidean(x_near, x_rand)
         if dd < self._delta:
             return x_rand
         return x_near + (x_rand-x_near)/dd*self._delta
@@ -115,7 +116,7 @@ class RRTree(object):
     def _collision_free(self, x_near, x_new, dist=None):
         # Lazy collision walker
         valid = True
-        d_full = euclidean(x_new, x_near)
+        d_full = distance.euclidean(x_new, x_near)
         v_hat = (x_new - x_near)/d_full
         for i in range(1, int(d_full/self._collision_step_dist)+1):
             c_pos = x_near + i*self._collision_step_dist*v_hat
@@ -148,10 +149,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Basic RRT example for plotting')
     parser.add_argument('-w', '--world', default='config/rrt_sample_world.yaml', help='World definition (obstacles)')
     parser.add_argument('-i', '--iterations', type=int, default=100, help='Max RRT iterations')
+    parser.add_argument('--seed', type=int, default=1, help='Random seed')
     parser.add_argument('--save-fig', action='store_true', help='Save figure location')
     parser.add_argument('-kd', action='store_true', help='Use kd_tree (it is outright slower though!)')
+    parser.add_argument('--loglevel', default='INFO', type=str,
+                        help='World definition (obstacles)')
     args = parser.parse_args()
-    np.random.seed(1)
+    np.random.seed(args.seed)
+
+    numeric_level = getattr(logging, args.loglevel.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError('Invalid log level: %s' % args.loglevel)
+    logging.basicConfig(level=numeric_level)
 
     if args.kd:
         nearest = 'kdtree'
@@ -162,8 +171,9 @@ if __name__ == "__main__":
     start_pos = [5.0, 5.0]
     rrt.set_start(start_pos)
     t0 = time.time()
+    logging.info('Running RRT search with max iterations n={0}'.format(args.iterations))
     rrt.search(imax=args.iterations)
-    print('RRT search complete in {0}s ({1})'.format(time.time()-t0, nearest))
+    logging.info('RRT search complete in {0}s ({1})'.format(time.time()-t0, nearest))
     f = plt.figure(figsize=(6, 6))
     ax = f.add_subplot(1, 1, 1)
     if len(rrt.vertices) >= 4:
