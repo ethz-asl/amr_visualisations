@@ -60,6 +60,16 @@ Currently, only a basic jointed robot arm and polygonal obstacles are implemente
 
 ![arm_config_space_video](https://user-images.githubusercontent.com/10678827/81062807-eedfa080-8ed6-11ea-8d94-a39898cf47cd.gif)
 
+### Rapidly-exploring Random Tree (RRT)
+Basic example of an RRT search showing the Voronoi regions to demonstrate how an RRT demonstrates a 'space-filling' effect.
+A basic example can be generated with:
+```
+python rrt_simple.py
+```
+The workspace definition can be changed to another file using the `--world` argument, number of iterations with `-i` and other options (try `python rrt_simple.py -h` for more help).
+
+![rrt_video](https://user-images.githubusercontent.com/10678827/127008176-1b9e58d1-330a-45af-a9b2-ebdbfe8938de.gif)
+
 ### Potential field example
 ```
 python potential_field.py
