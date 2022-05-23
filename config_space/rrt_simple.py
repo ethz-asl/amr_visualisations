@@ -3,6 +3,8 @@ import logging
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+
+import polygon_tools
 import robot_tools
 from matplotlib.collections import LineCollection
 from scipy.spatial import KDTree, Voronoi, voronoi_plot_2d, distance
@@ -28,10 +30,11 @@ class RRTree(object):
     edges = []
 
     def __init__(self, world, start=None, goal=None, delta=1.0,
-                 collision_step=0.01, nearest='cdist'):
+                 collision_step=0.01, nearest='cdist', p_goal=0.0):
         self.world = robot_tools.PlanningProblem(world)
         logging.info('Loaded RRT search problem from {0}'.format(world))
         self._delta = delta
+        self._p_goal = p_goal
         if nearest == 'kdtree':
             self._get_nearest = self._get_nearest_kd
             self._kd = True
@@ -53,7 +56,8 @@ class RRTree(object):
 
     def set_goal(self, goal):
         # Must be a poly.Polygon type
-        self._goal = goal
+        assert len(goal) == len(self.world.workspace.limits)
+        self._goal = np.array(goal)
 
     def search(self, imax = 1000):
         self.vertices = [self._start]
@@ -62,22 +66,27 @@ class RRTree(object):
             self._kdtree = KDTree(self.vertices)
 
         for i in range(0, imax):
-            self._search_step()
+            goal_found = self._search_step()
+            if ~goal_found:
+                break
 
     def _search_step(self):
+        goal_found = False
         x_rand = self._sample_freespace()
         i_near = self._get_nearest(x_rand)
         x_near = self.vertices[i_near]
         x_new = self._steer(x_near, x_rand)
         if self._valid_pose(x_new) and self._collision_free(x_near, x_new):
+            if (x_new == self._goal).all():
+                goal_found = True
             self.vertices.append(x_new)
             self.edges.append([])
             self.edges[i_near].append(len(self.vertices) - 1)
             if self._kd:
                 self._kdtree = KDTree(self.vertices)
+        return goal_found
 
     # def animated_search(self, imax=100, show_voronoi = True):
-
 
     def _valid_pose(self, x):
         self.world.robot.set_position(x)
@@ -88,7 +97,10 @@ class RRTree(object):
         valid = False
         i = 0
         while (not valid) and i < max_iter:
-            x_rand = np.random.uniform(self.world.workspace.limits[:, 0], self.world.workspace.limits[:, 1])
+            if 0 < self._p_goal < np.random.uniform():
+                x_rand = self._goal
+            else:
+                x_rand = np.random.uniform(self.world.workspace.limits[:, 0], self.world.workspace.limits[:, 1])
             valid = self._valid_pose(x_rand)
             i += 1
 
@@ -152,6 +164,7 @@ if __name__ == "__main__":
     parser.add_argument('--seed', type=int, default=1, help='Random seed')
     parser.add_argument('--save-fig', action='store_true', help='Save figure location')
     parser.add_argument('-kd', action='store_true', help='Use kd_tree (it is outright slower though!)')
+    parser.add_argument('--pgoal', type=float, default=0.0, help='Probability of attempting to sample goal directly')
     parser.add_argument('--loglevel', default='INFO', type=str,
                         help='World definition (obstacles)')
     args = parser.parse_args()
@@ -166,10 +179,14 @@ if __name__ == "__main__":
         nearest = 'kdtree'
     else:
         nearest = 'cdist'
-    rrt = RRTree(args.world, nearest=nearest)
+
+    rrt = RRTree(args.world, nearest=nearest, p_goal=args.pgoal)
 
     start_pos = [5.0, 5.0]
+    goal_pos = [9.5, 9.5]
     rrt.set_start(start_pos)
+    rrt.set_goal(goal_pos)
+
     t0 = time.time()
     logging.info('Running RRT search with max iterations n={0}'.format(args.iterations))
     rrt.search(imax=args.iterations)
