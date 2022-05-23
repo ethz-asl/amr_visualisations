@@ -33,3 +33,7 @@ robot:
   parameters:
     pos: [5.0, 5.0]
     footprint: [[0.1, 0.01], [-0.1, 0.01], [-0.1, -0.01], [0.1, -0.01]]
+
+planning:
+  start: [5.0, 5.0]
+  goal:  [9.5, 9.5]
