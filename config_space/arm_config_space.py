@@ -21,9 +21,11 @@ Author: Nicholas Lawrance (nicholas.lawrance@mavt.ethz.ch)
 
 """
 
-plt.rc('font', **{'family': 'serif', 'sans-serif': ['Computer Modern Roman']})
-plt.rc('text', usetex=True)
-colour_map = cm.viridis
+if matplotlib.checkdep_usetex(True):
+    plt.rc('font', **{'family': 'serif', 'sans-serif': ['Computer Modern Roman']})
+    plt.rc('text', usetex=True)
+
+# colour_map = cm.viridis.copy()
 colour_map = matplotlib.colors.ListedColormap([[0.4, 0.4, 0.4, 1.0]])
 
 
@@ -93,7 +95,7 @@ class ArmAnimator(object):
     h_arm = None
     plot_artists = []
 
-    def __init__(self, arm, obstacles, cspace_array, path, x_lim, y_lim, t1_lim, t2_lim, col_map=cm.viridis,
+    def __init__(self, arm, obstacles, cspace_array, path, x_lim, y_lim, t1_lim, t2_lim, col_map=cm.viridis.copy(),
                  shadow_skip=0):
 
         self.fig, self.ax = plt.subplots(1, 2)
@@ -161,7 +163,7 @@ class ArmAnimator(object):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Plot the config space from Fig 6.1 in Intro to AMR textbook')
-    parser.add_argument('-nx', type=int, default=101, help='Resolution (n points in each dimension)')
+    parser.add_argument('-nx', type=int, default=201, help='Resolution (n points in each dimension)')
     parser.add_argument('-w', '--world', default='config/block_world.yaml', help='World definition (obstacles)')
     parser.add_argument('-sa', '--save-animation', default=None, help='Save animation to file')
     parser.add_argument('-na', '--no-animation', action='store_true', help='Don\'t animate')
@@ -198,7 +200,11 @@ if __name__ == "__main__":
                       theta[0][[0, -1]], theta[1][[0, -1]])
 
     tt = np.linspace(0, 2*np.pi, 101)
-    a1[0].plot(arm_problem.robot._link_lengths[0]*np.cos(tt), arm_problem.robot._link_lengths[0]*np.sin(tt), '--', color='grey', lw=0.5)
+    a1[0].plot(arm_problem.robot._base_position.x + arm_problem.robot._link_lengths[0]*np.cos(tt),
+               arm_problem.robot._base_position.y + arm_problem.robot._link_lengths[0]*np.sin(tt),
+               '--',
+               color='grey',
+               lw=0.5)
     # a1[0].plot(ee_path[:, 0], ee_path[:, 1], 'r--')
     # a1[1].plot(path_full[:, 0], path_full[:, 1], 'r--')
 

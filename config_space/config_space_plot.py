@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import polygon_tools as poly
 import robot_tools
+import matplotlib
 from matplotlib.patches import Polygon as PlotPolygon
 from matplotlib.collections import PatchCollection
 import matplotlib.animation as animation
@@ -22,8 +23,9 @@ Author: Nicholas Lawrance (nicholas.lawrance@mavt.ethz.ch)
 
 """
 
-plt.rc('font', **{'family': 'serif', 'sans-serif': ['Computer Modern Roman']})
-plt.rc('text', usetex=True)
+if matplotlib.checkdep_usetex(True):
+    plt.rc('font', **{'family': 'serif', 'sans-serif': ['Computer Modern Roman']})
+    plt.rc('text', usetex=True)
 
 parser = argparse.ArgumentParser(description='Basic visualisation of configuration space for mobile robot')
 parser.add_argument('-nx', type=int, default=61, help='Resolution (n points in each dimension')
@@ -99,7 +101,10 @@ for i,xi in enumerate(x):
                     break
             v[i, j, k] = in_obs
 
-verts, faces, normals, values = measure.marching_cubes_lewiner(v, spacing=(x[1]-x[0], y[1]-y[0], (h[1]-h[0])*180/np.pi))
+if hasattr(measure, 'marching_cubes_lewiner'):
+    verts, faces, normals, values = measure.marching_cubes_lewiner(v, spacing=(x[1]-x[0], y[1]-y[0], (h[1]-h[0])*180/np.pi))
+else:
+    verts, faces, normals, values = measure.marching_cubes(v, spacing=(x[1]-x[0], y[1]-y[0], (h[1]-h[0])*180/np.pi), )
 ax_lims = [[0, x[-1]], [0, y[-1]], [0, h[-1]*180/np.pi]]
 
 fig = plt.figure(figsize=(10, 10))
