@@ -8,7 +8,7 @@ import matplotlib.animation as animation
 import matplotlib.cm as cm
 import matplotlib.colors
 import argparse
-import yaml
+import shutil
 from matplotlib.ticker import MultipleLocator
 
 """ 
@@ -21,7 +21,7 @@ Author: Nicholas Lawrance (nicholas.lawrance@mavt.ethz.ch)
 
 """
 
-if matplotlib.checkdep_usetex(True):
+if shutil.which('latex'):
     plt.rc('font', **{'family': 'serif', 'sans-serif': ['Computer Modern Roman']})
     plt.rc('text', usetex=True)
 

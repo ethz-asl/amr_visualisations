@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import polygon_tools as poly
 import robot_tools
-import matplotlib
+import shutil
 from matplotlib.patches import Polygon as PlotPolygon
 from matplotlib.collections import PatchCollection
 import matplotlib.animation as animation
@@ -23,7 +23,7 @@ Author: Nicholas Lawrance (nicholas.lawrance@mavt.ethz.ch)
 
 """
 
-if matplotlib.checkdep_usetex(True):
+if shutil.which('latex'):
     plt.rc('font', **{'family': 'serif', 'sans-serif': ['Computer Modern Roman']})
     plt.rc('text', usetex=True)
 
